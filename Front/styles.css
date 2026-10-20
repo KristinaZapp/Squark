@@ -1,0 +1,144 @@
+body{
+	background-color: black;
+	font-family: "Lucida Console", "Courier New", monospace;
+}
+
+div, .generic_text{
+	color:red;
+}
+
+h1{
+	text-align: center;
+	color: firebrick;
+}
+
+button{
+	background-color:black;
+	color: firebrick;
+}
+
+#character_status{
+	display:flex;
+	width:100%;
+	justify-content: center;
+}
+
+#map{
+	height:auto;
+	width:25vw;
+	font-size: small;
+}
+
+#game_text{
+	font-size: x-large;
+	position: relative;
+	left: 25%;
+	width: 50vw;
+}
+
+.generic_button{
+	border-style: outset;
+	border-color: firebrick;
+}
+
+#start_button{
+	height: auto;
+	width: auto;
+	font-size: xx-large;
+}
+
+#alerts{
+	position: fixed;
+	top: 5%;
+	right: 5%;
+	height: auto;
+	width: 20vh;
+}
+
+.alert{
+	border-style: hidden hidden hidden solid;
+	border-width: 0.5vh;
+	border-color: firebrick;
+}
+
+#input_zone{
+	display:flex;
+	width:100%;
+	justify-content: center;
+}
+
+.arrow_button{
+	border-style: hidden;
+	font-size: xx-large;
+	height: auto;
+	width: auto;
+	display: flex;
+	position: absolute;
+}
+
+#arrow_zone{
+	position: relative;
+	display: flex;
+	height: 10vh;
+	width: 5vw;
+	justify-content: center;
+	align-items: center;
+}
+
+#vertical_arrows, #horizontal_arrows{
+	display: flex;
+}
+
+#vertical_arrows{
+	justify-content: center;
+}
+
+#horizontal_arrows{
+	align-items: center;
+}
+
+#up_arrow{
+	top: 5%;
+}
+
+#down_arrow{
+	bottom: 5%;
+}
+
+#left_arrow{
+	left: 5%;
+}
+
+#right_arrow{
+	right: 5%;
+}
+
+#game_space{
+	display:flex;
+	justify-content:center;
+}
+
+ul{
+	width:300px;
+}
+
+#combat_buttons{
+	display: flex;
+	justify-content: center;
+}
+
+#action_buttons{
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.action_button{
+	width:100%;
+}
+
+[hidden]{
+	display: none;
+}
