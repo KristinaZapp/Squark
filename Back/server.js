@@ -478,6 +478,7 @@ function loadMonsters()
 
 function loadPlayers()
 {
+	//load the players
 	const arr = getPlayers.all();
 	for(const c of arr)
 	{
@@ -495,6 +496,15 @@ function loadPlayers()
 
 		//add the player to the in-memory registry
 		players.add(newPlayer);
+	}
+
+	//fill in the empty spots with null
+	for(let i=0; i < players.length; i++)
+	{
+		if(players[i] === undefined)
+		{
+			players[i] === null;
+		}
 	}
 }
 
