@@ -187,6 +187,21 @@ class Combat
 		this.#players = this.#players.filter((x)=>x!==player);
 		this.checkForMonsterTurn(); //probably a good idea?
 	}
+
+	playerIn(player)
+	{
+		return this.#in(this.#players, player);
+	}
+
+	monsterIn(monster)
+	{
+		return this.#in(this.#monsters, monster);
+	}
+
+	#in(list, creature)
+	{
+		return indexOfNumber(list, creature.number) !== -1;
+	}
 }
 
 //exports

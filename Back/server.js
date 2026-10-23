@@ -240,67 +240,54 @@ function checkForMonsters(player)
 	}
 }
 
+function validateCharacter(parts, player)
+{
+	return player !== undefined && player !== null && (parseInt(parts[3]) === player.position || (parseInt(parts[3]) === SPAWN_ROOM && player.position===-1)) && parseInt(parts[4]) === player.health && parseInt(parts[5]) === player.maxHealth && parseInt(parts[6]) === player.attack && parseInt(parts[7]) === player.speed && parseInt([parts[8]]) === player.defence
+}
+
+function validateMove(oldPosition, newPosition, player)
+{
+	const transitionValid = (oldPosition === -1 && newPosition === SPAWN_ROOM) || transitions[oldPosition].left === newPosition || transitions[oldPosition].up === newPosition || transitions[oldPosition].down === newPosition || transitions[oldPosition].right === newPosition
+	const combat = combats[oldPosition];
+	const outOfCombat = combat === undefined || combat === null || !combat.playerIn(player);
+
+	return transitionValid && outOfCombat;
+}
+
+function validateAttack(playerNum, monsterNum)
+{
+	const player = players.get(playerNum);
+	const monster = monsters.get(monsterNum);
+
+	//they certainly can't fight if they aren't in the same place
+	if(player.position !== monster.position)
+	{
+		return false;
+	}
+
+	const combat = combats[player.position];
+	return combat !== undefined && combat !== null && combat.playerIn(player) && combat.monsterIn(monster);
+}
+
+function validateFlee(player)
+{
+	const combat = combats[player.position];
+	return combat !== undefined && combat !== null && combat.playerIn(player);
+}
+
 function handleMessage(msg, socket)
 {
 	const parts = msg.toString().split("$");
-	const playerNum = parseInt(parts[0])
-	if(parts[1] === MOVE)
-	{
-		//update the player's position
-		const player = players.get(playerNum);
-		const position = parseInt(parts[2]);
-		const oldPosition = player.position;
-		player.position = position;
-		updatePlayerDB(player);
-		// console.log("player " + playerNum + " is now in position " + player.position);
 
-		//update the other players
-		sendPlayerMove(playerNum, oldPosition, position);
-
-		//check if there are any monsters in the new room
-		checkForMonsters(player);
-	}
-	else if(parts[1] === ATTACK)
-	{
-		const monsterNum = parseInt(parts[2]);
-		const dmg = Dice.d6() + players.get(playerNum).attack;
-		damageMonster(monsterNum, dmg, playerNum);
-		combats[players.get(playerNum).position].playerActed(playerNum);
-	}
-	else if(parts[1] === FLEE)
-	{
-		const player = players.get(playerNum);
-		let msg = null;
-
-		//check if the player flees successfully
-		if(combats[player.position].fleeSuccessful(player))
-		{
-			msg = FLEE_SUCCESSFUL;
-		}
-		else
-		{
-			msg = FLEE_FAILED;
-		}
-
-		//send the messages to everyone in the room
-		const numPlayers = players.length;
-		for(let i=0; i < numPlayers; i++)
-		{
-			const p = players.get(i);
-			if(p !== null && p.position === player.position)
-			{
-				p.send(msg + "$" + playerNum);
-			}
-		}
-	}
-	else if(parts[1] === NEW_CHARACTER)
+	//player data messages
+	if(parts[1] === NEW_CHARACTER)
 	{
 		newCharacter(socket);
 	}
 	else if(parts[1] === LOAD_CHARACTER)
 	{
 		const player = players.get(parseInt(parts[2]));
-		if(player !== undefined && player !== null && (parseInt(parts[3]) === player.position || (parseInt(parts[3]) === SPAWN_ROOM && player.position===-1)) && parseInt(parts[4]) === player.health && parseInt(parts[5]) === player.maxHealth && parseInt(parts[6]) === player.attack && parseInt(parts[7]) === player.speed && parseInt([parts[8]]) === player.defence)
+		if(validateCharacter(parts, player))
 		{
 			player.socket = socket;
 			player.activate();
@@ -311,9 +298,78 @@ function handleMessage(msg, socket)
 			socket.send(REGISTER_FAIL);
 		}
 	}
+
+	//messages for playing the game
 	else
 	{
-		console.log(msg.toString());
+		const playerNum = parseInt(parts[0]);
+		const player = players.get(playerNum);
+
+		if(socket === player.socket)
+		{
+			if(parts[1] === MOVE)
+			{
+				//update the player's position
+				const position = parseInt(parts[2]);
+				const oldPosition = player.position;
+
+				if(validateMove(oldPosition, position, player))
+				{
+					player.position = position;
+					updatePlayerDB(player);
+					// console.log("player " + playerNum + " is now in position " + player.position);
+
+					//update the other players
+					sendPlayerMove(playerNum, oldPosition, position);
+
+					//check if there are any monsters in the new room
+					checkForMonsters(player);
+				}
+			}
+			else if(parts[1] === ATTACK)
+			{
+				const monsterNum = parseInt(parts[2]);
+
+				if(validateAttack(playerNum, monsterNum))
+				{
+					const dmg = Dice.d6() + players.get(playerNum).attack;
+					damageMonster(monsterNum, dmg, playerNum);
+					combats[players.get(playerNum).position].playerActed(playerNum);
+				}
+			}
+			else if(parts[1] === FLEE)
+			{
+				if(validateFlee(player))
+				{
+					let msg = null;
+
+					//check if the player flees successfully
+					if(combats[player.position].fleeSuccessful(player))
+					{
+						msg = FLEE_SUCCESSFUL;
+					}
+					else
+					{
+						msg = FLEE_FAILED;
+					}
+
+					//send the messages to everyone in the room
+					const numPlayers = players.length;
+					for(let i=0; i < numPlayers; i++)
+					{
+						const p = players.get(i);
+						if(p !== null && p !== undefined && p.active && p.position === player.position)
+						{
+							p.send(msg + "$" + playerNum);
+						}
+					}
+				}
+			}
+			else
+			{
+				console.log(msg.toString());
+			}
+		}
 	}
 }
 
