@@ -7,39 +7,9 @@
 
 	<body>
 		<h1>Squark</h1>
-		<canvas id="canvas" width="1920" height="150" hidden></canvas>
-		<pre id="map" class="generic_text" hidden></pre>
-		<div id="game_text">Welcome to Squark!<br><br>Squark is a simulation of a dungeon infested with monsters. Dare you create a character and try to survive?</div>
-		<pre id="character_status" class="generic_text"></pre>
-		<button id="start_button" class="generic_button">Start</button>
-		<button id="load_character" class = "generic_button" hidden>Load character</button>
-		<button id="new_character" class = "generic_button" hidden>New character</button>
-		<div id="input_zone">
-			<div id="arrow_zone">
-				<div id="vertical_arrows">
-					<button id="up_arrow" class="arrow_button" hidden>&uarr;</button>
-					<button id="down_arrow" class="arrow_button" hidden>&darr;</button>
-				</div>
-				<div id="horizontal_arrows">
-					<button id="left_arrow" class="arrow_button" hidden>&larr;</button>
-					<button id="right_arrow" class="arrow_button" hidden>&rarr;</button>
-				</div>
-			</div>
-		</div>
-		<div id="game_space">
-			<ul id="player_list"></ul>
-			<ul id="monster_list"></ul>
-			<div id="combat_buttons">
-				<div id="action_buttons">
-					<button id="attack_button" class="generic_button action_button" hidden>Attack</button>
-					<button id="flee_button" class="generic_button action_button" hidden>Flee</button>
-				</div>
-				<ul id="target_buttons">
-				</ul>
-			</div>
-		</div>
-		<div id="alerts"></div>
-	</body>
-	<script src="jquery.js"></script>
-	<script src="front.js"></script>
+		<div id="game_text">Welcome to Squark!<br><br>Development of Squark is very much ongoing, and updates (such as future outages) will be found here. To go to the game, click the button below.</div>
+
+        <form action="game.html">
+            <button class="generic_button">Go to the game!</button>
+        </form>
 </html>
