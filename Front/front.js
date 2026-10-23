@@ -60,14 +60,14 @@ function startGame()
 
 function newCharacter()
 {
-	//TODO delete the old character
+	sendValidation(DELETE_CHARACTER);
 	sendMessage(NEW_CHARACTER);
 	startGame();
 }
 
 function loadCharacter()
 {
-	sendMessage(LOAD_CHARACTER + "$" + localStorage.getItem("playerNumber") + "$" + localStorage.getItem("position") + "$" + localStorage.getItem("health") + "$" + localStorage.getItem("maxHealth") + "$" + localStorage.getItem("attack") + "$" + localStorage.getItem("speed") + "$" + localStorage.getItem("defence"));
+	sendValidation(LOAD_CHARACTER);
 }
 
 function tryToConnect()
@@ -584,6 +584,12 @@ function sendFlee()
 	sendMessage(FLEE);
 }
 
+//send a message that requires the character data being validated
+function sendValidation(msg)
+{
+	sendMessage(msg + "$" + localStorage.getItem("playerNumber") + "$" + localStorage.getItem("position") + "$" + localStorage.getItem("health") + "$" + localStorage.getItem("maxHealth") + "$" + localStorage.getItem("attack") + "$" + localStorage.getItem("speed") + "$" + localStorage.getItem("defence"));
+}
+
 //helper functions
 function readyToPlay()
 {
@@ -696,6 +702,7 @@ const ATTACK = "ATTACK";
 const FLEE = "FLEE";
 const LOAD_CHARACTER = "LOAD_CHARACTER";
 const NEW_CHARACTER = "NEW_CHARACTER";
+const DELETE_CHARACTER = "DELETE_CHARACTER";
 
 //alert variables
 let nextAlert = 0;
