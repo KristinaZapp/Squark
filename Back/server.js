@@ -48,6 +48,7 @@ const ATTACK = "ATTACK";
 const FLEE = "FLEE";
 const LOAD_CHARACTER = "LOAD_CHARACTER";
 const NEW_CHARACTER = "NEW_CHARACTER";
+const DELETE_CHARACTER = "DELETE_CHARACTER";
 
 //database connection
 const db = new DatabaseSync("database.db");
@@ -296,6 +297,15 @@ function handleMessage(msg, socket)
 		else
 		{
 			socket.send(REGISTER_FAIL);
+		}
+	}
+	else if(parts[1] === DELETE_CHARACTER)
+	{
+		const player = players.get(parseInt(parts[2]));
+		if(validateCharacter(parts, player))
+		{
+			players.clear(parseInt(parts[2]));
+			deletePlayerDB(parseInt(parts[2]));
 		}
 	}
 
