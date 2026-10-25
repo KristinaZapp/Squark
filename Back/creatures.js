@@ -149,6 +149,19 @@ class AutoMovingCreature extends Creature
 
 class NPC extends AutoMovingCreature
 {
+	constructor(position, health, attack, speed, defence)
+	{
+		//I know this is bad but it's good enough for now
+		if(health === undefined)
+		{
+			super(Dice.randInt(10,15), Dice.randInt(5,9), Dice.randInt(6,10), Dice.randInt(6,10), position);
+		}
+		else
+		{
+			super(health, attack, speed, defence, position);
+		}
+	}
+
 	//returns the number of the monster to be attacked next
 	//TODO a lot of work on this
 	target(options)
