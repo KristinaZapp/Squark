@@ -26,6 +26,7 @@ const SPAWN_INTERVAL = 10000; //delay between spawning monsters (10 seconds)
 const MAX_MONSTERS = 7; //the maximum number of monsters that can exist
 
 //message constants
+//messages we send
 const TRANSITIONS = "TRANSITIONS";
 const CHARACTER = "CHARACTER";
 const BOUNDS = "BOUNDS";
@@ -44,6 +45,7 @@ const FLEE_FAILED = "FLEE_FAILED";
 const REGISTERED = "REGISTERED";
 const REGISTER_FAIL = "REGISTER_FAIL";
 
+//messages we receive
 const MOVE = "MOVE";
 const ATTACK = "ATTACK";
 const FLEE = "FLEE";
@@ -116,6 +118,7 @@ async function addNPCDB(npc)
 	addNPC.run(npc.number, npc.position, npc.health, npc.maxHealth, npc.attack, npc.speed, player.npc);
 }
 
+//spawning and moving functions
 function startMovingMonster(newMonster)
 {
 	newMonster.movementIntervalID = setInterval(()=>moveMonster(newMonster), MOVE_INTERVAL);
@@ -261,6 +264,33 @@ function checkForMonsters(player)
 	}
 }
 
+function sendPlayerMove(playerNum, oldPosition, newPosition)
+{
+	for(let i=0; i < players.length; i++)
+	{
+		if(i != playerNum)
+		{
+			const player = players.get(i);
+			if(player !== null && player.active)
+			{
+				//if the player is in the new room
+				if(player.position === newPosition)
+				{
+					player.send(PLAYER_ARRIVAL + "$" + players.get(playerNum).toMessage);
+					players.get(playerNum).send(PLAYER_PRESENT + "$" + player.toMessage);
+				}
+
+				//if the player is in the old room
+				else if(player.position === oldPosition)
+				{
+					player.send(PLAYER_DEPARTURE + "$" + playerNum);
+				}
+			}
+		}
+	}
+}
+
+//validation functions
 function validateCharacter(parts, player)
 {
 	return player !== undefined && player !== null && (parseInt(parts[3]) === player.position || (parseInt(parts[3]) === SPAWN_ROOM && player.position===-1)) && parseInt(parts[4]) === player.health && parseInt(parts[5]) === player.maxHealth && parseInt(parts[6]) === player.attack && parseInt(parts[7]) === player.speed && parseInt([parts[8]]) === player.defence
@@ -294,6 +324,89 @@ function validateFlee(player)
 {
 	const combat = combats[player.position];
 	return combat !== undefined && combat !== null && combat.playerIn(player);
+}
+
+//combat functions
+function combatOver(room)
+{
+	combats[room] = null;
+}
+
+function damagePlayer(playerNum, dmg, damagedBy)
+{
+	const player = players.get(playerNum);
+	dealDamage(PLAYER_DAMAGED, player, dmg, damagedBy);
+
+	if(player.health === 0)
+	{
+		deletePlayerDB(playerNum);
+		players.clear(playerNum);
+	}
+	else
+	{
+		updatePlayerDB(player);
+	}
+}
+
+function damageMonster(monsterNum, dmg, damagedBy)
+{
+	//deal the damage
+	const monster = monsters.get(monsterNum);
+	dealDamage(MONSTER_DAMAGED, monster, dmg, damagedBy);
+
+	//update the database
+	if(monster.health === 0)
+	{
+		deleteMonsterDB(monsterNum); //remove it if it's dead
+		monsters.clear(monsterNum); //remove from the in-memory registry too
+	}
+	else
+	{
+		updateMonsterDB(monster);
+	}
+}
+
+function dealDamage(msgString, creature, dmg, damagedBy)
+{
+	//deal the damage
+	const effectiveDMG = Math.max(dmg - creature.defence, 0);
+	creature.damage(effectiveDMG);
+
+	//send to all the players in the same room
+	const numPlayers = players.length;
+	for(let i=0; i < numPlayers; i++)
+	{
+		const p = players.get(i);
+		if(p !== null && p.active && p.position === creature.position)
+		{
+			p.send(msgString + "$" + creature.number + "$" + effectiveDMG + "$" + damagedBy);
+		}
+	}
+}
+
+function playerGone(player)
+{
+	//remove the player from combat if necessary
+	if(combats[player.position] !== null && combats[player.position] !== undefined)
+	{
+		combats[player.position].removePlayer(player);
+	}
+
+	//update the other players
+	sendPlayerMove(player.number, player.position, -1);
+}
+
+//functions to handle client messages
+function newClient(socket)
+{
+	socket.on("message", (msg)=>handleMessage(msg, socket));
+	socket.on("close", ()=>players.deactivateBySocket(socket));
+
+	//send the map data to the client
+	socket.send(TRANSITIONS + "$" + JSON.stringify(transitions));
+	socket.send(MAP + "$" + map);
+	socket.send(BOUNDS + "$" + bounds);
+	socket.send(POSITIONS + "$" + positions);
 }
 
 function handleMessage(msg, socket)
@@ -403,50 +516,6 @@ function handleMessage(msg, socket)
 	}
 }
 
-function sendPlayerMove(playerNum, oldPosition, newPosition)
-{
-	for(let i=0; i < players.length; i++)
-	{
-		if(i != playerNum)
-		{
-			const player = players.get(i);
-			if(player !== null && player.active)
-			{
-				//if the player is in the new room
-				if(player.position === newPosition)
-				{
-					player.send(PLAYER_ARRIVAL + "$" + players.get(playerNum).toMessage);
-					players.get(playerNum).send(PLAYER_PRESENT + "$" + player.toMessage);
-				}
-
-				//if the player is in the old room
-				else if(player.position === oldPosition)
-				{
-					player.send(PLAYER_DEPARTURE + "$" + playerNum);
-				}
-			}
-		}
-	}
-}
-
-function initializeWebSocket()
-{
-	const wss = new WebSocket.Server({port:6767});
-	wss.on("connection", newClient);
-}
-
-function newClient(socket)
-{
-	socket.on("message", (msg)=>handleMessage(msg, socket));
-	socket.on("close", ()=>players.deactivateBySocket(socket));
-
-	//send the map data to the client
-	socket.send(TRANSITIONS + "$" + JSON.stringify(transitions));
-	socket.send(MAP + "$" + map);
-	socket.send(BOUNDS + "$" + bounds);
-	socket.send(POSITIONS + "$" + positions);
-}
-
 function newCharacter(socket)
 {
 	//create the character object
@@ -460,73 +529,11 @@ function newCharacter(socket)
 	console.log("character " + newCharacter.number + " created");
 }
 
-function combatOver(room)
+//functions to start the game
+function initializeWebSocket()
 {
-	combats[room] = null;
-}
-
-function damagePlayer(playerNum, dmg, damagedBy)
-{
-	const player = players.get(playerNum);
-	dealDamage(PLAYER_DAMAGED, player, dmg, damagedBy);
-
-	if(player.health === 0)
-	{
-		deletePlayerDB(playerNum);
-		players.clear(playerNum);
-	}
-	else
-	{
-		updatePlayerDB(player);
-	}
-}
-
-function damageMonster(monsterNum, dmg, damagedBy)
-{
-	//deal the damage
-	const monster = monsters.get(monsterNum);
-	dealDamage(MONSTER_DAMAGED, monster, dmg, damagedBy);
-
-	//update the database
-	if(monster.health === 0)
-	{
-		deleteMonsterDB(monsterNum); //remove it if it's dead
-		monsters.clear(monsterNum); //remove from the in-memory registry too
-	}
-	else
-	{
-		updateMonsterDB(monster);
-	}
-}
-
-function dealDamage(msgString, creature, dmg, damagedBy)
-{
-	//deal the damage
-	const effectiveDMG = Math.max(dmg - creature.defence, 0);
-	creature.damage(effectiveDMG);
-
-	//send to all the players in the same room
-	const numPlayers = players.length;
-	for(let i=0; i < numPlayers; i++)
-	{
-		const p = players.get(i);
-		if(p !== null && p.active && p.position === creature.position)
-		{
-			p.send(msgString + "$" + creature.number + "$" + effectiveDMG + "$" + damagedBy);
-		}
-	}
-}
-
-function playerGone(player)
-{
-	//remove the player from combat if necessary
-	if(combats[player.position] !== null && combats[player.position] !== undefined)
-	{
-		combats[player.position].removePlayer(player);
-	}
-
-	//update the other players
-	sendPlayerMove(player.number, player.position, -1);
+	const wss = new WebSocket.Server({port:6767});
+	wss.on("connection", newClient);
 }
 
 function loadMonsters()
@@ -593,6 +600,8 @@ function loadPlayers()
 		}
 	}
 }
+
+//TODO load the npcs
 
 function main()
 {
