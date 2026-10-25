@@ -62,6 +62,7 @@ class Creature
 	}
 
 	//heal
+	//currently unused but I should add something that uses it
 	heal(amount)
 	{
 		this.#health += amount;
@@ -119,9 +120,46 @@ class Character extends Creature
 
 const ALL_OPTIONS = ["left", "right", "up", "down"];
 
-class Monster extends Creature
+//class for any creature that automatically moves
+class AutoMovingCreature extends Creature
 {
 	movementIntervalID;
+
+	stopMoving()
+	{
+		clearInterval(this.movementIntervalID);
+	}
+
+	nextRoom(options)
+	{
+		const optionsArray = [];
+
+		//this feels hacky, but without dictionary support I can't think of a better way to do it
+		for(let option of ALL_OPTIONS)
+		{
+			if(options[option] !== undefined)
+			{
+				optionsArray.push(option);
+			}
+		}
+
+		return options[optionsArray[Dice.randInt(0,optionsArray.length-1)]];
+	}
+}
+
+class NPC extends AutoMovingCreature
+{
+	//returns the number of the monster to be attacked next
+	//TODO a lot of work on this
+	target(options)
+	{
+		const index = Dice.randInt(0, options.length-1);
+		return options[index].number;
+	}
+}
+
+class Monster extends AutoMovingCreature
+{
 	#name;
 	#inCombat;
 
@@ -142,11 +180,6 @@ class Monster extends Creature
 		return super.toMessage + "," + this.#name;
 	}
 
-	stopMoving()
-	{
-		clearInterval(this.movementIntervalID);
-	}
-
 	damage(dmg)
 	{
 		super.damage(dmg);
@@ -160,22 +193,6 @@ class Monster extends Creature
 	{
 		super.kill();
 		this.stopMoving();
-	}
-
-	nextRoom(options)
-	{
-		const optionsArray = [];
-
-		//this feels hacky, but without dictionary support I can't think of a better way to do it
-		for(let option of ALL_OPTIONS)
-		{
-			if(options[option] !== undefined)
-			{
-				optionsArray.push(option);
-			}
-		}
-
-		return options[optionsArray[Dice.randInt(0,optionsArray.length-1)]];
 	}
 
 	//returns the player number of the player to be attacked next
@@ -334,4 +351,5 @@ const monsterTypes = [Angel, ClownBeetle, CrystalBall, Kiwwwi, MaskBat, MaybeDee
 
 //exports
 exports.Character = Character;
+exports.NPC = NPC;
 exports.MonsterTypes = monsterTypes;
