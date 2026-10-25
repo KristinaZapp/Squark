@@ -11,6 +11,7 @@ const Combat = require("./combat.js");
 //global
 const players = new Lists.Registry();
 const monsters = new Lists.Registry();
+const npcs = new Lists.Registry();
 const combats = [];
 
 let transitions = null;
@@ -57,12 +58,16 @@ const db = new DatabaseSync("database.db");
 //TODO condense these to reuse code
 const getPlayers = db.prepare("SELECT * FROM players ORDER BY number");
 const getMonsters = db.prepare("SELECT * FROM monsters ORDER BY number");
+const getNPCs = db.prepare("SELECT * FROM npcs ORDER BY number");
 const addPlayer = db.prepare("INSERT INTO players (number, position, health, maxHealth, attack, speed, defence) VALUES (?, ?, ?, ?, ?, ?, ?)");
 const addMonster = db.prepare("INSERT INTO monsters (number, position, health, maxHealth, attack, speed, defence, name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+const addNPC = db.prepare("INSERT INTO npcs (number, position, health, maxHealth, attack, speed, defence) VALUES (?, ?, ?, ?, ?, ?, ?)");
 const updatePlayer = db.prepare('UPDATE players SET position = ?, health = ? WHERE number = ?');
 const updateMonster = db.prepare('UPDATE monsters SET position = ?, health = ? WHERE number = ?');
+const updateNPC = db.prepare('UPDATE npcs SET position = ?, health = ? WHERE number = ?');
 const deletePlayer = db.prepare("DELETE FROM players WHERE number=?");
 const deleteMonster = db.prepare("DELETE FROM monsters WHERE number=?");
+const deleteNPC = db.prepare("DELETE FROM npcs WHERE number=?");
 
 //functions to update the database
 //these can happen asynchronously since they aren't the primary source of truth
@@ -94,6 +99,21 @@ async function deletePlayerDB(playerNum)
 async function addPlayerDB(player)
 {
 	addPlayer.run(player.number, player.position, player.health, player.maxHealth, player.attack, player.speed, player.defence);
+}
+
+async function updateNPCDB(npc)
+{
+	updateNPC.run(npc.position, npc.health, npc.number);
+}
+
+async function deleteNPCDB(npcNum)
+{
+	deleteNPC.run(npcNum);
+}
+
+async function addNPCDB(npc)
+{
+	addNPC.run(npc.number, npc.position, npc.health, npc.maxHealth, npc.attack, npc.speed, player.npc);
 }
 
 function startMovingMonster(newMonster)
