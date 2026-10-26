@@ -24,6 +24,7 @@ const SPAWN_ROOM = 14; //the room where players spawn
 const MOVE_INTERVAL = 30000; //delay between monster moving (30 seconds)
 const SPAWN_INTERVAL = 10000; //delay between spawning monsters (10 seconds)
 const MAX_MONSTERS = 7; //the maximum number of monsters that can exist
+const MAX_NPCS = 3; //the maximum number of NPCs that can exist
 
 //message constants
 //messages we send
@@ -38,6 +39,9 @@ const PLAYER_PRESENT = "PLAYER_PRESENT";
 const MONSTER_ARRIVAL = "MONSTER_ARRIVAL";
 const MONSTER_DEPARTURE = "MONSTER_DEPARTURE";
 const MONSTER_PRESENT = "MONSTER_PRESENT";
+const NPC_ARRIVAL = "NPC_ARRIVAL";
+const NPC_DEPARTURE = "NPC_DEPARTURE";
+const NPC_PRESENT = "NPC_PRESENT";
 const PLAYER_DAMAGED = "PLAYER_DAMAGED";
 const MONSTER_DAMAGED = "MONSTER_DAMAGED";
 const FLEE_SUCCESSFUL = "FLEE_SUCCESSFUL";
@@ -115,15 +119,10 @@ async function deleteNPCDB(npcNum)
 
 async function addNPCDB(npc)
 {
-	addNPC.run(npc.number, npc.position, npc.health, npc.maxHealth, npc.attack, npc.speed, player.npc);
+	addNPC.run(npc.number, npc.position, npc.health, npc.maxHealth, npc.attack, npc.speed, npc.defence);
 }
 
 //spawning and moving functions
-function startMovingMonster(newMonster)
-{
-	newMonster.movementIntervalID = setInterval(()=>moveMonster(newMonster), MOVE_INTERVAL);
-}
-
 function spawnMonster()
 {
 	if(monsters.numActive < MAX_MONSTERS)
@@ -147,26 +146,63 @@ function spawnMonster()
 		addMonsterDB(newMonster);
 
 		//start moving the monster
-		startMovingMonster(newMonster);
+		startMovingCreature(newMonster, updateMonsterDB, processMonsterMove, monsterInCombat);
 	}
 }
 
-function moveMonster(monster)
+function spawnNPC()
 {
-	if(!monster.inCombat)
+	if(npcs.numActive < MAX_NPCS)
 	{
-		//update the monster's position based on the transitions table
-		const oldPosition = monster.position;
-		const newPosition = monster.nextRoom(transitions[monster.position]);
+		//randomly determine the spawn location
+		const room = Dice.randInt(0, numRooms-1);
 
-		console.log("moving " + monster.name + " from " + oldPosition + " to " + newPosition);
-		monster.position = newPosition;
+		//create the NPC
+		let newNPC = new Creatures.NPC(room);
+
+		console.log("Spawning NPC in room " + room);
+
+		//add the npc to the list
+		npcs.add(newNPC);
+
+		//add the npc to the database
+		addNPCDB(newNPC);
+
+		//start moving the NPC
+		startMovingCreature(newNPC, updateNPCDB, processNPCMove, npcInCombat);
+	}
+}
+
+function startMovingCreature(newCreature, updateDB, process, combatCheck)
+{
+	newCreature.movementIntervalID = setInterval(()=>moveCreature(newCreature,updateDB, process, combatCheck), MOVE_INTERVAL);
+}
+
+function moveCreature(creature, updateDB, process, combatCheck)
+{
+	if(!combatCheck(creature))
+	{
+		//update the creature's position based on the transitions table
+		const oldPosition = creature.position;
+		const newPosition = creature.nextRoom(transitions[creature.position]);
+
+		//not the most robust thing in the world but it will work for now
+		if(creature.name !== undefined)
+		{
+			console.log("Moving " + creature.name + " from room " + oldPosition + " to room " + newPosition);
+		}
+		else
+		{
+			console.log("Moving NPC from room " + oldPosition + " to room " + newPosition);
+		}
+
+		creature.position = newPosition;
 
 		//update the database
-		updateMonsterDB(monster);
+		updateDB(creature);
 
 		//notify the players and handle combats
-		processMonsterMove(monster, oldPosition);
+		process(creature, oldPosition);
 	}
 }
 
@@ -216,6 +252,41 @@ function processMonsterMove(monster, oldPosition)
 	if(startedCombat)
 	{
 		combats[newPosition].firstTurn();
+	}
+}
+
+function processNPCMove(npc, oldPosition)
+{
+	//update the players
+	const newPosition = npc.position;
+	for(let i=0; i < players.length; i++)
+	{
+		const player = players.get(i);
+		if(player !== null && player.active)
+		{
+			if(player.position === oldPosition)
+			{
+				player.send(NPC_DEPARTURE + "$" + npc.number);
+			}
+			else if(player.position === newPosition)
+			{
+				player.send(NPC_ARRIVAL + "$" + npc.toMessage);
+			}
+		}
+	}
+
+	//TODO handle the combats
+}
+
+function checkForNPCs(player)
+{
+	for(let i=0; i < npcs.length; i++)
+	{
+		const npc = npcs.get(i);
+		if(npc !== null && npc.position === player.position)
+		{
+			player.send(NPC_PRESENT + "$" + npc.toMessage);
+		}
 	}
 }
 
@@ -320,10 +391,22 @@ function validateAttack(playerNum, monsterNum)
 	return combat !== undefined && combat !== null && combat.playerIn(player) && combat.monsterIn(monster);
 }
 
-function validateFlee(player)
+function playerInCombat(player)
 {
 	const combat = combats[player.position];
 	return combat !== undefined && combat !== null && combat.playerIn(player);
+}
+
+function monsterInCombat(monster)
+{
+	const combat = combats[monster.position];
+	return combat !== undefined && combat !== null && combat.monsterIn(monster);
+}
+
+function npcInCombat(npc)
+{
+	//TODO
+	return false;
 }
 
 //combat functions
@@ -409,6 +492,7 @@ function newClient(socket)
 	socket.send(POSITIONS + "$" + positions);
 }
 
+//TODO factor this into functions so it isn't a nightmare
 function handleMessage(msg, socket)
 {
 	const parts = msg.toString().split("$");
@@ -465,6 +549,9 @@ function handleMessage(msg, socket)
 					//update the other players
 					sendPlayerMove(playerNum, oldPosition, position);
 
+					//check if there are any NPCs in the new room
+					checkForNPCs(player);
+
 					//check if there are any monsters in the new room
 					checkForMonsters(player);
 				}
@@ -482,7 +569,7 @@ function handleMessage(msg, socket)
 			}
 			else if(parts[1] === FLEE)
 			{
-				if(validateFlee(player))
+				if(playerInCombat(player))
 				{
 					let msg = null;
 
@@ -560,7 +647,7 @@ function loadMonsters()
 				newMonster.number = m.number;
 
 				//start moving the monster
-				startMovingMonster(newMonster);
+				startMovingCreature(newMonster, updateMonsterDB, processMonsterMove, monsterInCombat);
 
 				//add the monster to the in-memory registry
 				monsters.add(newMonster);
@@ -590,18 +677,32 @@ function loadPlayers()
 		//add the player to the in-memory registry
 		players.add(newPlayer);
 	}
-
-	//fill in the empty spots with null
-	for(let i=0; i < players.length; i++)
-	{
-		if(players[i] === undefined)
-		{
-			players[i] === null;
-		}
-	}
 }
 
-//TODO load the npcs
+function loadNPCs()
+{
+	const arr = getNPCs.all(); //spooky
+	for(const c of arr)
+	{
+		console.log("Loading NPC " + c.number + " in position " + c.position);
+
+		//create the NPC
+		const newNPC = new Creatures.NPC(c.position, c.maxHealth, c.attack, c.speed, c.defence);
+
+		//update the health
+		const dmg = c.maxHealth - c.health;
+		newNPC.damage(dmg);
+
+		//set the number
+		newNPC.number = c.number;
+
+		//start moving the npc
+		startMovingCreature(newNPC, updateNPCDB, processNPCMove, npcInCombat);
+
+		//add the NPC to the in-memory registry
+		npcs.add(newNPC);
+	}
+}
 
 function main()
 {
@@ -626,11 +727,20 @@ function main()
 	//load the monsters from the database
 	loadMonsters();
 
+	//load the npcs from the database
+	loadNPCs();
+
 	//spawn one monster to start
 	spawnMonster();
 
 	//spawn more monsters
 	setInterval(()=>{spawnMonster()}, SPAWN_INTERVAL);
+
+	//spawn one NPC to start
+	spawnNPC();
+
+	//spawn more NPCs
+	setInterval(()=>{spawnNPC()}, SPAWN_INTERVAL);
 
 	//listen for clients
 	initializeWebSocket();

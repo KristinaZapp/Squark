@@ -226,6 +226,28 @@ function handleMessage(msg)
 		playersPresent.push(newPlayer);
 		updatePlayerList();
 	}
+	else if(parts[0] === NPC_ARRIVAL)
+	{
+		addAlert("An adventurer has entered the room");
+		const stats = parts[1].split(",");
+		const newPlayer = new Player(parseInt(stats[0]), parseInt(stats[1]), parseInt(stats[2]));
+		npcsPresent.push(newPlayer);
+		updatePlayerList();
+	}
+	else if(parts[0] === NPC_DEPARTURE)
+	{
+		addAlert("An adventurer has left the room");
+		npcsPresent = npcsPresent.filter((player)=>player.number !== parseInt(parts[1]))
+		updatePlayerList();
+	}
+	else if(parts[0] === NPC_PRESENT)
+	{
+		addAlert("An adventurer is in the room");
+		const stats = parts[1].split(",");
+		const newPlayer = new Player(parseInt(stats[0]), parseInt(stats[1]), parseInt(stats[2]));
+		npcsPresent.push(newPlayer);
+		updatePlayerList();
+	}
 	else if(parts[0] === MONSTER_ARRIVAL)
 	{
 		const stats = parts[1].split(",");
@@ -424,6 +446,11 @@ function updatePlayerList()
 	{
 		html += "<li>Adventurer HP: " + player.health + "/" + player.maxHealth + "</li>";
 	}
+
+	for(let player of npcsPresent)
+	{
+		html += "<li>Adventurer HP: " + player.health + "/" + player.maxHealth + "</li>";
+	}
 	playerList.innerHTML = html;
 }
 
@@ -549,6 +576,7 @@ function processMove()
 	alerts.innerHTML = ""; //maybe fade this out or something?
 	playersPresent = [];
 	monstersPresent = [];
+	npcsPresent = [];
 	updateMonsterList();
 	updatePlayerList();
 	sendMove();
@@ -667,6 +695,7 @@ let explored = null;
 //initialize the lists of who is present
 let playersPresent = [];
 let monstersPresent = [];
+let npcsPresent = [];
 
 //initialize character data
 let position = -1;
@@ -678,6 +707,7 @@ let defence = -1;
 let playerNumber = -1;
 
 //message constants
+//messages we receive
 const CHARACTER = "CHARACTER";
 const TRANSITIONS = "TRANSITIONS";
 const BOUNDS = "BOUNDS";
@@ -689,6 +719,9 @@ const PLAYER_PRESENT = "PLAYER_PRESENT";
 const MONSTER_ARRIVAL = "MONSTER_ARRIVAL";
 const MONSTER_DEPARTURE = "MONSTER_DEPARTURE";
 const MONSTER_PRESENT = "MONSTER_PRESENT";
+const NPC_ARRIVAL = "NPC_ARRIVAL";
+const NPC_DEPARTURE = "NPC_DEPARTURE";
+const NPC_PRESENT = "NPC_PRESENT";
 const TURN = "TURN";
 const PLAYER_DAMAGED = "PLAYER_DAMAGED";
 const MONSTER_DAMAGED = "MONSTER_DAMAGED";
@@ -697,6 +730,7 @@ const FLEE_FAILED = "FLEE_FAILED";
 const REGISTERED = "REGISTERED";
 const REGISTER_FAIL = "REGISTER_FAIL";
 
+//messages we send
 const MOVE_MSG = "MOVE";
 const ATTACK = "ATTACK";
 const FLEE = "FLEE";
@@ -706,7 +740,7 @@ const DELETE_CHARACTER = "DELETE_CHARACTER";
 
 //alert variables
 let nextAlert = 0;
-const ALERT_LIFETIME = 5000; //10 seconds
+const ALERT_LIFETIME = 5000; //5 seconds
 
 //load images
 let imgsLoaded = 0;

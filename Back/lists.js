@@ -38,7 +38,14 @@ class Registry
 
 	get(i)
 	{
-		return this.#arr[i];
+		if(this.#arr[i] === undefined)
+		{
+			return null;
+		}
+		else
+		{
+			return this.#arr[i];
+		}
 	}
 
 	clear(i)
