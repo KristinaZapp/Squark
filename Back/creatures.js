@@ -226,7 +226,7 @@ class ClownBeetle extends Monster
 	constructor(position, health, attack, speed, defence)
 	{
 		if(health === undefined)
-			super(Dice.randInt(1,3), Dice.randInt(1,3), Dice.randInt(1,3), Dice.randInt(1,3), position, "Clown Beetle");
+			super(Dice.randInt(1,3), Dice.randInt(7,9), Dice.randInt(1,3), Dice.randInt(1,3), position, "Clown Beetle");
 		else
 			super(health, attack, speed, defence, position, "Clown Beetle");
 	}
@@ -248,7 +248,7 @@ class Kiwwwi extends Monster
 	constructor(position, health, attack, speed, defence)
 	{
 		if(health === undefined)
-			super(Dice.randInt(4,6), Dice.randInt(1,3), Dice.randInt(1,3), Dice.randInt(4,6), position, "Kiwwwi");
+			super(Dice.randInt(4,6), Dice.randInt(7,9), Dice.randInt(1,3), Dice.randInt(4,6), position, "Kiwwwi");
 		else
 			super(health, attack, speed, defence, position, "Kiwwwi");
 	}
@@ -259,7 +259,7 @@ class MaskBat extends Monster
 	constructor(position, health, attack, speed, defence)
 	{
 		if(health === undefined)
-			super(Dice.randInt(1,3), Dice.randInt(1,3), Dice.randInt(9,12), Dice.randInt(8,10), position, "Mask Bat");
+			super(Dice.randInt(1,3), Dice.randInt(7,9), Dice.randInt(9,12), Dice.randInt(8,10), position, "Mask Bat");
 		else
 			super(health, attack, speed, defence, position, "Mask Bat");
 	}
@@ -281,7 +281,7 @@ class NoEyes extends Monster
 	constructor(position, health, attack, speed, defence)
 	{
 		if(health === undefined)
-			super(Dice.randInt(4,6), Dice.randInt(1,3), Dice.randInt(9,12), Dice.randInt(4,6), position, "No Eyes");
+			super(Dice.randInt(4,6), Dice.randInt(7,9), Dice.randInt(9,12), Dice.randInt(4,6), position, "No Eyes");
 		else
 			super(health, attack, speed, defence, position, "No Eyes")
 	}
@@ -292,7 +292,7 @@ class SeeingPlant extends Monster
 	constructor(position, health, attack, speed, defence)
 	{
 		if(health === undefined)
-			super(Dice.randInt(4,6), Dice.randInt(1,3), Dice.randInt(1,3), Dice.randInt(4,6), position, "Seeing Plant");
+			super(Dice.randInt(4,6), Dice.randInt(7,9), Dice.randInt(1,3), Dice.randInt(4,6), position, "Seeing Plant");
 		else
 			super(health, attack, speed, defence, position, "Seeing Plant");
 	}
@@ -303,7 +303,7 @@ class Seraphim extends Monster
 	constructor(position, health, attack, speed, defence)
 	{
 		if(health === undefined)
-			super(Dice.randInt(4,6), Dice.randInt(4,6), Dice.randInt(4,6), Dice.randInt(4,6), position, "Seraphim");
+			super(Dice.randInt(4,6), Dice.randInt(7,9), Dice.randInt(4,6), Dice.randInt(4,6), position, "Seraphim");
 		else
 			super(health, attack, speed, defence, position, "Seraphim");
 	}
@@ -314,7 +314,7 @@ class Shade extends Monster
 	constructor(position, health, attack, speed, defence)
 	{
 		if(health === undefined)
-			super(Dice.randInt(1,3), Dice.randInt(1,3), Dice.randInt(9,12), Dice.randInt(4,6), position, "Shade");
+			super(Dice.randInt(1,3), Dice.randInt(7,9), Dice.randInt(9,12), Dice.randInt(4,6), position, "Shade");
 		else
 			super(health, attack, speed, defence, position, "Shade");
 	}
@@ -325,7 +325,7 @@ class TempleKeeper extends Monster
 	constructor(position, health, attack, speed, defence)
 	{
 		if(health === undefined)
-			super(Dice.randInt(1,3), Dice.randInt(4,6), Dice.randInt(1,3), Dice.randInt(4,6), position, "Temple Keeper");
+			super(Dice.randInt(1,3), Dice.randInt(7,9), Dice.randInt(1,3), Dice.randInt(4,6), position, "Temple Keeper");
 		else
 			super(health, attack, speed, defence, position, "Temple Keeper");
 	}
