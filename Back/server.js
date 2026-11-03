@@ -30,8 +30,8 @@ let numRooms = 0;
 const SPAWN_ROOM = 14; //the room where players spawn
 const MOVE_INTERVAL = 30000; //delay between monster moving (30 seconds)
 const SPAWN_INTERVAL = 10000; //delay between spawning monsters (10 seconds)
-const MAX_MONSTERS = 100; //the maximum number of monsters that can exist
-const MAX_NPCS = 100; //the maximum number of NPCs that can exist
+const MAX_MONSTERS = 7; //the maximum number of monsters that can exist
+const MAX_NPCS = 3; //the maximum number of NPCs that can exist
 
 //message constants
 //messages we send
