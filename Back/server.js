@@ -163,7 +163,8 @@ function spawnNPC()
 	if(npcs.numActive < MAX_NPCS)
 	{
 		//randomly determine the spawn location
-		const room = Dice.randInt(0, numRooms-1);
+		// const room = Dice.randInt(0, numRooms-1);
+		const room = SPAWN_ROOM;
 
 		//create the NPC
 		let newNPC = new Creatures.NPC(room);
