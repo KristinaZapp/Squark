@@ -215,7 +215,7 @@ class Angel extends Monster
 	constructor(position, health, attack, speed, defence)
 	{
 		if(health === undefined)
-			super(Dice.randInt(9,12), Dice.randInt(9,12), Dice.randInt(9,12), Dice.randInt(9,12), position, "Angel");
+			super(Dice.randInt(9,12), Dice.randInt(9,12), Dice.randInt(8,11), Dice.randInt(9,12), position, "Angel");
 		else
 			super(health, attack, speed, defence, position, "Angel");
 	}
@@ -259,7 +259,7 @@ class MaskBat extends Monster
 	constructor(position, health, attack, speed, defence)
 	{
 		if(health === undefined)
-			super(Dice.randInt(1,3), Dice.randInt(1,3), Dice.randInt(9,12), Dice.randInt(9,12), position, "Mask Bat");
+			super(Dice.randInt(1,3), Dice.randInt(1,3), Dice.randInt(8,11), Dice.randInt(9,12), position, "Mask Bat");
 		else
 			super(health, attack, speed, defence, position, "Mask Bat");
 	}
