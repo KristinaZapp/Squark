@@ -1,6 +1,13 @@
 //imports
 const Dice = require("./dice.js");
 
+//target functions
+function randomTarget(options)
+{
+	return Dice.randInt(0, options.length-1);
+}
+
+//creature classes
 class Creature
 {
 	position;
@@ -145,6 +152,15 @@ class AutoMovingCreature extends Creature
 
 		return options[optionsArray[Dice.randInt(0,optionsArray.length-1)]];
 	}
+
+	damage(dmg)
+	{
+		super.damage(dmg);
+		if(this.health <= 0)
+		{
+			this.stopMoving();
+		}
+	}
 }
 
 class NPC extends AutoMovingCreature
@@ -160,27 +176,19 @@ class NPC extends AutoMovingCreature
 		{
 			super(health, attack, speed, defence, position);
 		}
-	}
-
-	//returns the number of the monster to be attacked next
-	//TODO a lot of work on this
-	target(options)
-	{
-		const index = Dice.randInt(0, options.length-1);
-		return options[index].number;
+		this.target = randomTarget;
 	}
 }
 
 class Monster extends AutoMovingCreature
 {
 	#name;
-	#inCombat;
 
 	constructor(health, attack, speed, defence, position, name)
 	{
 		super(health, attack, speed, defence, position);
 		this.#name = name;
-		this.#inCombat = false;
+		this.target = randomTarget;
 	}
 
 	get name()
@@ -193,36 +201,10 @@ class Monster extends AutoMovingCreature
 		return super.toMessage + "," + this.#name;
 	}
 
-	damage(dmg)
-	{
-		super.damage(dmg);
-		if(this.health === 0)
-		{
-			this.stopMoving();
-		}
-	}
-
 	kill()
 	{
 		super.kill();
 		this.stopMoving();
-	}
-
-	//returns the player number of the player to be attacked next
-	target(options)
-	{
-		const index = Dice.randInt(0, options.length-1);
-		return options[index].number;
-	}
-
-	get inCombat()
-	{
-		return this.#inCombat;
-	}
-
-	set inCombat(val)
-	{
-		if(typeof val === "boolean") this.#inCombat = val;
 	}
 }
 

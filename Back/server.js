@@ -1,3 +1,10 @@
+//exports
+exports.damagePlayer = damagePlayer;
+exports.damageMonster = damageMonster;
+exports.damageNPC = damageNPC;
+exports.combatOver = combatOver;
+exports.playerGone = playerGone;
+
 //imports
 const WebSocket = require('ws');
 const fs = require('fs');
@@ -23,8 +30,8 @@ let numRooms = 0;
 const SPAWN_ROOM = 14; //the room where players spawn
 const MOVE_INTERVAL = 30000; //delay between monster moving (30 seconds)
 const SPAWN_INTERVAL = 10000; //delay between spawning monsters (10 seconds)
-const MAX_MONSTERS = 7; //the maximum number of monsters that can exist
-const MAX_NPCS = 3; //the maximum number of NPCs that can exist
+const MAX_MONSTERS = 100; //the maximum number of monsters that can exist
+const MAX_NPCS = 100; //the maximum number of NPCs that can exist
 
 //message constants
 //messages we send
@@ -44,6 +51,7 @@ const NPC_DEPARTURE = "NPC_DEPARTURE";
 const NPC_PRESENT = "NPC_PRESENT";
 const PLAYER_DAMAGED = "PLAYER_DAMAGED";
 const MONSTER_DAMAGED = "MONSTER_DAMAGED";
+const NPC_DAMAGED = "NPC_DAMAGED";
 const FLEE_SUCCESSFUL = "FLEE_SUCCESSFUL";
 const FLEE_FAILED = "FLEE_FAILED";
 const REGISTERED = "REGISTERED";
@@ -58,7 +66,7 @@ const NEW_CHARACTER = "NEW_CHARACTER";
 const DELETE_CHARACTER = "DELETE_CHARACTER";
 
 //database connection
-const db = new DatabaseSync("database.db");
+const db = new DatabaseSync("./database.db");
 
 //database prepared statements
 //TODO condense these to reuse code
@@ -77,47 +85,47 @@ const deleteNPC = db.prepare("DELETE FROM npcs WHERE number=?");
 
 //functions to update the database
 //these can happen asynchronously since they aren't the primary source of truth
-async function updateMonsterDB(monster)
+function updateMonsterDB(monster)
 {
 	updateMonster.run(monster.position, monster.health, monster.number);
 }
 
-async function deleteMonsterDB(monsterNum)
+function deleteMonsterDB(monsterNum)
 {
 	deleteMonster.run(monsterNum);
 }
 
-async function addMonsterDB(monster)
+function addMonsterDB(monster)
 {
 	addMonster.run(monster.number, monster.position, monster.health, monster.maxHealth, monster.attack, monster.speed, monster.defence, monster.name);
 }
 
-async function updatePlayerDB(player)
+function updatePlayerDB(player)
 {
 	updatePlayer.run(player.position, player.health, player.number);
 }
 
-async function deletePlayerDB(playerNum)
+function deletePlayerDB(playerNum)
 {
 	deletePlayer.run(playerNum);
 }
 
-async function addPlayerDB(player)
+function addPlayerDB(player)
 {
 	addPlayer.run(player.number, player.position, player.health, player.maxHealth, player.attack, player.speed, player.defence);
 }
 
-async function updateNPCDB(npc)
+function updateNPCDB(npc)
 {
 	updateNPC.run(npc.position, npc.health, npc.number);
 }
 
-async function deleteNPCDB(npcNum)
+function deleteNPCDB(npcNum)
 {
 	deleteNPC.run(npcNum);
 }
 
-async function addNPCDB(npc)
+function addNPCDB(npc)
 {
 	addNPC.run(npc.number, npc.position, npc.health, npc.maxHealth, npc.attack, npc.speed, npc.defence);
 }
@@ -134,19 +142,19 @@ function spawnMonster()
 		//create the monster
 		let newMonster = new Creatures.MonsterTypes[monsterType](room); //javascript is ridiculous
 
-		console.log("Spawning " + newMonster.name + " in room " + room);
-
 		//add the monster to the list
 		monsters.add(newMonster);
-
-		//send messages
-		processMonsterMove(newMonster, -2); //I should probably make this a named constant
 
 		//add the monster to the database
 		addMonsterDB(newMonster);
 
+		console.log("Spawning monster " + newMonster.number + " (" + newMonster.name + ") in room " + room);
+
 		//start moving the monster
 		startMovingCreature(newMonster, updateMonsterDB, processMonsterMove, monsterInCombat);
+
+		//send messages
+		processMonsterMove(newMonster, -2); //I should probably make this a named constant
 	}
 }
 
@@ -160,22 +168,25 @@ function spawnNPC()
 		//create the NPC
 		let newNPC = new Creatures.NPC(room);
 
-		console.log("Spawning NPC in room " + room);
-
 		//add the npc to the list
 		npcs.add(newNPC);
 
 		//add the npc to the database
 		addNPCDB(newNPC);
 
+		console.log("Spawning NPC " + newNPC.number + " in room " + room);
+
 		//start moving the NPC
 		startMovingCreature(newNPC, updateNPCDB, processNPCMove, npcInCombat);
+
+		processNPCMove(newNPC, null);
 	}
 }
 
 function startMovingCreature(newCreature, updateDB, process, combatCheck)
 {
-	newCreature.movementIntervalID = setInterval(()=>moveCreature(newCreature,updateDB, process, combatCheck), MOVE_INTERVAL);
+	const id = setInterval(()=>moveCreature(newCreature,updateDB, process, combatCheck), MOVE_INTERVAL);
+	newCreature.movementIntervalID = id;
 }
 
 function moveCreature(creature, updateDB, process, combatCheck)
@@ -189,11 +200,19 @@ function moveCreature(creature, updateDB, process, combatCheck)
 		//not the most robust thing in the world but it will work for now
 		if(creature.name !== undefined)
 		{
-			console.log("Moving " + creature.name + " from room " + oldPosition + " to room " + newPosition);
+			console.log("Moving monster " + creature.number + " (" + creature.name + ") from room " + oldPosition + " to room " + newPosition);
+			if(monsters.get(creature.number) !== creature)
+			{
+				console.log("->invalid monster");
+			}
 		}
 		else
 		{
-			console.log("Moving NPC from room " + oldPosition + " to room " + newPosition);
+			console.log("Moving NPC " + creature.number + " from room " + oldPosition + " to room " + newPosition);
+			if(npcs.get(creature.number) !== creature)
+			{
+				console.log("->invalid npc");
+			}
 		}
 
 		creature.position = newPosition;
@@ -236,7 +255,6 @@ function processMonsterMove(monster, oldPosition)
 				if(combats[newPosition] === null)
 				{
 					combats[newPosition] = new Combat.Combat(newPosition);
-					combats[newPosition].addMonster(monster);
 					startedCombat = true;
 				}
 
@@ -248,9 +266,29 @@ function processMonsterMove(monster, oldPosition)
 		}
 	}
 
+	//check the npcs
+	for(let i=0; i < npcs.length; i++)
+	{
+		const npc = npcs.get(i);
+		if(npc !== null && npc.position === newPosition)
+		{
+			if(combats[newPosition] === null)
+			{
+				combats[newPosition] = new Combat.Combat(newPosition);
+				startedCombat = true;
+			}
+
+			if(startedCombat)
+			{
+				combats[newPosition].addNPC(npc);
+			}
+		}
+	}
+
 	//if we started a combat, start the first turn
 	if(startedCombat)
 	{
+		combats[newPosition].addMonster(monster);
 		combats[newPosition].firstTurn();
 	}
 }
@@ -275,7 +313,35 @@ function processNPCMove(npc, oldPosition)
 		}
 	}
 
-	//TODO handle the combats
+	//add the npc to the combat in the room, if there is one
+	if(combats[newPosition] !== null && combats[newPosition] !== undefined)
+	{
+		combats[newPosition].addNPC(npc);
+	}
+
+	//otherwise, check if we should start a combat
+	else
+	{
+		let startedCombat = false;
+		for(let i=0; i < monsters.length; i++)
+		{
+			const monster = monsters.get(i);
+			if(monster !== null && monster.position === newPosition)
+			{
+				if(combats[newPosition] === null)
+				{
+					combats[newPosition] = new Combat.Combat(newPosition);
+					startedCombat = true;
+				}
+				combats[newPosition].addMonster(monster);
+			}
+		}
+		if(startedCombat)
+		{
+			combats[newPosition].addNPC(npc);
+			combats[newPosition].firstTurn();
+		}
+	}
 }
 
 function checkForNPCs(player)
@@ -405,8 +471,8 @@ function monsterInCombat(monster)
 
 function npcInCombat(npc)
 {
-	//TODO
-	return false;
+	const combat = combats[npc.position];
+	return combat !== undefined && combat !== null && combat.npcIn(npc);
 }
 
 //combat functions
@@ -436,7 +502,7 @@ function damageMonster(monsterNum, dmg, damagedBy)
 	//deal the damage
 	const monster = monsters.get(monsterNum);
 	dealDamage(MONSTER_DAMAGED, monster, dmg, damagedBy);
-
+	
 	//update the database
 	if(monster.health === 0)
 	{
@@ -446,6 +512,24 @@ function damageMonster(monsterNum, dmg, damagedBy)
 	else
 	{
 		updateMonsterDB(monster);
+	}
+}
+
+function damageNPC(npcNum, dmg, damagedBy)
+{
+	//deal the damage
+	const npc = npcs.get(npcNum);
+	dealDamage(NPC_DAMAGED, npc, dmg, damagedBy);
+
+	//update the database
+	if(npc.health === 0)
+	{
+		deleteNPCDB(npcNum);
+		npcs.clear(npcNum);
+	}
+	else
+	{
+		updateNPCDB(npc);
 	}
 }
 
@@ -701,6 +785,8 @@ function loadNPCs()
 
 		//add the NPC to the in-memory registry
 		npcs.add(newNPC);
+
+		processNPCMove(newNPC, null);
 	}
 }
 
@@ -748,8 +834,3 @@ function main()
 
 //the actual program
 main();
-
-//exports
-exports.damagePlayer = damagePlayer;
-exports.combatOver = combatOver;
-exports.playerGone = playerGone;

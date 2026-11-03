@@ -361,6 +361,26 @@ function handleMessage(msg)
 		addAlert(alertText);
 		updateMonsterList();
 	}
+	else if(parts[0] === NPC_DAMAGED)
+	{
+		const npcNum = parseInt(parts[1]);
+		const dmg = parseInt(parts[2]);
+		const damagedBy = parseInt(parts[3]);
+		const monster = getByNumber(monstersPresent, damagedBy);
+		const npc = getByNumber(npcsPresent, npcNum);
+
+		let alertText = monster.name + " dealt " + dmg + " points of damage to another adventurer";
+
+		npc.health = Math.max(0, npc.health - dmg);
+		if(npc.health === 0)
+		{
+			alertText += ", killing them";
+			npcsPresent = npcsPresent.filter((x)=>x.health > 0);
+		}
+
+		updatePlayerList();
+		addAlert(alertText);
+	}
 	else if(parts[0] === FLEE_SUCCESSFUL)
 	{
 		const playerNum = parseInt(parts[1]);
@@ -725,6 +745,7 @@ const NPC_PRESENT = "NPC_PRESENT";
 const TURN = "TURN";
 const PLAYER_DAMAGED = "PLAYER_DAMAGED";
 const MONSTER_DAMAGED = "MONSTER_DAMAGED";
+const NPC_DAMAGED = "NPC_DAMAGED";
 const FLEE_SUCCESSFUL = "FLEE_SUCCESSFUL";
 const FLEE_FAILED = "FLEE_FAILED";
 const REGISTERED = "REGISTERED";
