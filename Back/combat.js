@@ -121,7 +121,6 @@ class Combat
 			{
 				//check if the npc flees
 				const choice = Dice.randInt(0,this.#monsters.length);
-				console.log(choice);
 				if(choice === this.#monsters.length) //means there's a uniform chance of taking each action, I think
 				{
 					const success = Dice.d6() + npc.speed >= speedScore(this.#monsters);
