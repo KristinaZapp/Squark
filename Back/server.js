@@ -4,6 +4,7 @@ exports.damageMonster = damageMonster;
 exports.damageNPC = damageNPC;
 exports.combatOver = combatOver;
 exports.playerGone = playerGone;
+exports.sendFlee = sendFlee;
 
 //imports
 const WebSocket = require('ws');
@@ -656,34 +657,37 @@ function handleMessage(msg, socket)
 			{
 				if(playerInCombat(player))
 				{
-					let msg = null;
-
-					//check if the player flees successfully
-					if(combats[player.position].fleeSuccessful(player))
-					{
-						msg = FLEE_SUCCESSFUL;
-					}
-					else
-					{
-						msg = FLEE_FAILED;
-					}
-
-					//send the messages to everyone in the room
-					const numPlayers = players.length;
-					for(let i=0; i < numPlayers; i++)
-					{
-						const p = players.get(i);
-						if(p !== null && p !== undefined && p.active && p.position === player.position)
-						{
-							p.send(msg + "$" + playerNum);
-						}
-					}
+					const success = combats[player.position].fleeSuccessful(player);
+					sendFlee(player.position, player.number, success);
 				}
 			}
 			else
 			{
 				console.log(msg.toString());
 			}
+		}
+	}
+}
+
+function sendFlee(position, id, success)
+{
+	let msg = null;
+	if(success)
+	{
+		msg = FLEE_SUCCESSFUL;
+	}
+	else
+	{
+		msg = FLEE_FAILED;
+	}
+	msg += "$" + id;
+
+	for(let i=0; i < players.length; i++)
+	{
+		const player = players.get(i);
+		if(player !== null && player.active && player.position === position)
+		{
+			player.send(msg);
 		}
 	}
 }

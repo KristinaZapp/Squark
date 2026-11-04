@@ -113,16 +113,34 @@ class Combat
 	npcTurn()
 	{
 		this.#monsters = this.#monsters.filter((x)=>x.health>0);
+
 		//each of the npcs takes a turn
 		for(const npc of this.#npcs)
 		{
 			if(this.#monsters.length > 0)
 			{
-				const targetIndex = npc.target(this.#monsters);
-				const target = this.#monsters[targetIndex];
-				const dmg = Dice.d6() + npc.attack;
-				Server.damageMonster(target.number, dmg, "NPC");
-				this.#monsters = this.#monsters.filter((x)=>x.health>0);
+				//check if the npc flees
+				const choice = Dice.randInt(0,this.#monsters.length);
+				console.log(choice);
+				if(choice === this.#monsters.length) //means there's a uniform chance of taking each action, I think
+				{
+					const success = Dice.d6() + npc.speed >= speedScore(this.#monsters);
+					if(success)
+					{
+						this.#npcs = this.#npcs.filter((x)=>x!==npc);
+					}
+					Server.sendFlee(npc.position, "NPC", success);
+				}
+
+				//otherwise, they attack one of the monsters
+				else
+				{
+					const targetIndex = npc.target(this.#monsters);
+					const target = this.#monsters[targetIndex];
+					const dmg = Dice.d6() + npc.attack;
+					Server.damageMonster(target.number, dmg, "NPC");
+					this.#monsters = this.#monsters.filter((x)=>x.health>0);
+				}
 			}
 		}
 		this.monsterTurn();
