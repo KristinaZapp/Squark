@@ -25,6 +25,28 @@ function indexOfNumber(arr, num)
 	return -1;
 }
 
+function listToJSON(list)
+{
+	let ret = "[";
+	for(let i=0; i < list.length; i++)
+	{
+		const creature = list[i];
+		ret += "{";
+		ret += "\"number\":" + creature.number + ",\"health\":" + creature.health + ",\"maxHealth\":" + creature.maxHealth;
+		if(creature.name !== undefined)
+		{
+			ret += ",\"name\":\"" + creature.name + "\"";
+		}
+		ret += "}";
+		if(i !== list.length-1)
+		{
+			ret += ",";
+		}
+	}
+	ret += "]";
+	return ret;
+}
+
 //combat class
 class Combat
 {
@@ -32,6 +54,7 @@ class Combat
 	#monsters;
 	#npcs;
 	#playersActed;
+	#npcChoices;
 	#position;
 
 	#playerTurnTimeoutID;
@@ -41,6 +64,7 @@ class Combat
 		this.#players = [];
 		this.#monsters = [];
 		this.#npcs = [];
+		this.#npcChoices = [];
 		this.#position = position;
 	}
 
@@ -113,16 +137,21 @@ class Combat
 	npcTurn()
 	{
 		this.#monsters = this.#monsters.filter((x)=>x.health>0);
+		this.#npcChoices = [];
 
 		//each of the npcs takes a turn
 		for(const npc of this.#npcs)
 		{
 			if(this.#monsters.length > 0)
 			{
+				//record the state before the npc acts
+				let datum = "{\"npc\":" + npc.toJSON() + ",\"combat\":" + this.#toJSON() + "}$";
+
 				//check if the npc flees
 				const choice = Dice.randInt(0,this.#monsters.length);
 				if(choice === this.#monsters.length) //means there's a uniform chance of taking each action, I think
 				{
+					datum += "FLEE$";
 					const success = Dice.d6() + npc.speed >= speedScore(this.#monsters);
 					if(success)
 					{
@@ -136,10 +165,13 @@ class Combat
 				{
 					const targetIndex = npc.target(this.#monsters);
 					const target = this.#monsters[targetIndex];
+					datum += "ATTACK " + target.number + "$";
 					const dmg = Dice.d6() + npc.attack;
 					Server.damageMonster(target.number, dmg, "NPC");
 					this.#monsters = this.#monsters.filter((x)=>x.health>0);
 				}
+
+				this.#npcChoices.push(datum);
 			}
 		}
 		this.monsterTurn();
@@ -176,12 +208,14 @@ class Combat
 					}
 				}
 			}
+			Server.addData(this.#npcChoices);
 
 			//the players can act
 			this.playerTurn();
 		}
 		else
 		{
+			Server.addData(this.#npcChoices);
 			Server.combatOver(this.#position);
 		}
 	}
@@ -262,6 +296,11 @@ class Combat
 	#in(list, creature)
 	{
 		return indexOfNumber(list, creature.number) !== -1;
+	}
+
+	#toJSON()
+	{
+		return "{\"players\":" + listToJSON(this.#players) + ",\"npcs\":" + listToJSON(this.#npcs) + ",\"monsters\":" + listToJSON(this.#monsters) + "}";
 	}
 }
 

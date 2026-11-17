@@ -5,6 +5,7 @@ exports.damageNPC = damageNPC;
 exports.combatOver = combatOver;
 exports.playerGone = playerGone;
 exports.sendFlee = sendFlee;
+exports.addData = addData;
 
 //imports
 const WebSocket = require('ws');
@@ -68,6 +69,11 @@ const DELETE_CHARACTER = "DELETE_CHARACTER";
 
 //database connection
 const db = new DatabaseSync("./database.db");
+
+//dataset
+const DATASET_FILE = "dataset.txt";
+fs.appendFileSync(DATASET_FILE, ""); //append nothing to make sure the file exists
+let datasetSize = fs.readFileSync(DATASET_FILE, "utf-8").split("\n").length-1; //disgusting
 
 //database prepared statements
 //TODO condense these to reuse code
@@ -703,6 +709,28 @@ function newCharacter(socket)
 	socket.send(CHARACTER + "$" + newCharacter.health + "," + newCharacter.attack + "," + newCharacter.speed + "," + newCharacter.defence + "," + SPAWN_ROOM + "," + newCharacter.number);
 
 	console.log("character " + newCharacter.number + " created");
+}
+
+//dataset functions
+function addData(data)
+{
+	for(const datum of data)
+	{
+		const parts = datum.split("$");
+		const combatState = JSON.parse(parts[0]);
+		const registryNPC = npcs.get(combatState.npc.number);
+		if(registryNPC === null || !registryNPC.equals(combatState.npc))
+		{
+			//npc dead
+			fs.appendFileSync(DATASET_FILE, datum + "0\n");
+		}
+		else
+		{
+			//npc not dead
+			fs.appendFileSync(DATASET_FILE, datum + registryNPC.health + "\n");
+		}
+		datasetSize++; //we will need this later
+	}
 }
 
 //functions to start the game
