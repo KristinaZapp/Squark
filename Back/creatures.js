@@ -183,6 +183,19 @@ class NPC extends AutoMovingCreature
 	{
 		return "{\"number\":" + this.number + ",\"health\":" + this.health + ",\"maxHealth\":" + this.maxHealth + ",\"attack\":" + this.attack + ",\"speed\":" + this.speed + ",\"defence\":" + this.defence + "}";
 	}
+
+	equals(other)
+	{
+		if(other !== undefined && other !== null && other.number !== undefined && other.maxHealth !== undefined && other.attack !== undefined && other.speed !== undefined && other.defence !== undefined)
+		{
+			//does not compare current health, since that can change
+			return this.number === other.number && this.maxHealth === other.maxHealth && this.attack === other.attack && this.speed === other.speed && this.defence === other.defence;
+		}
+		else
+		{
+			return false;
+		}
+	}
 }
 
 class Monster extends AutoMovingCreature
