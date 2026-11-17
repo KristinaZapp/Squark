@@ -178,6 +178,11 @@ class NPC extends AutoMovingCreature
 		}
 		this.target = randomTarget;
 	}
+
+	toJSON()
+	{
+		return "{\"number\":" + this.number + ",\"health\":" + this.health + ",\"maxHealth\":" + this.maxHealth + ",\"attack\":" + this.attack + ",\"speed\":" + this.speed + ",\"defence\":" + this.defence + "}";
+	}
 }
 
 class Monster extends AutoMovingCreature
